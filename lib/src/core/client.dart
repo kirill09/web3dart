@@ -317,6 +317,23 @@ class Web3Client {
     });
   }
 
+  Future<Transaction> prepareTransaction(
+    Credentials cred,
+    Transaction transaction, {
+    int? chainId = 1,
+    bool fetchChainIdFromNetworkId = false,
+  }) async {
+    final signingInput = await _fillMissingData(
+      credentials: cred,
+      transaction: transaction,
+      chainId: chainId,
+      loadChainIdFromNetwork: fetchChainIdFromNetworkId,
+      client: this,
+    );
+
+    return signingInput.transaction;
+  }
+
   /// Signs the given transaction using the keys supplied in the [cred]
   /// object to upload it to the client so that it can be executed.
   ///
