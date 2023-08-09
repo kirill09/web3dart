@@ -317,7 +317,7 @@ class Web3Client {
     });
   }
 
-  Future<List<dynamic>> prepareTransaction(
+  Future<TransactionMissingData> prepareTransaction(
     EthereumAddress sender,
     Transaction transaction, {
     int? chainId = 1,
@@ -331,7 +331,10 @@ class Web3Client {
       client: this,
     );
 
-    return [signingInput.transaction, signingInput.chainId];
+    return TransactionMissingData(
+      signingInput.transaction,
+      signingInput.chainId,
+    );
   }
 
   Future<Uint8List> transactionToBytes(
