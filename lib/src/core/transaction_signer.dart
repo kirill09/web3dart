@@ -19,13 +19,45 @@ Future<_SigningInput> _fillMissingData({
   bool loadChainIdFromNetwork = false,
   Web3Client? client,
 }) async {
+  final sender = transaction.from ?? credentials.address;
+  final filledData = await _fillMissingDataWithoutCred(
+    sender: sender,
+    transaction: transaction,
+    chainId: chainId,
+    loadChainIdFromNetwork: loadChainIdFromNetwork,
+    client: client,
+  );
+
+  return _SigningInput(
+    transaction: filledData.transaction,
+    credentials: credentials,
+    chainId: filledData.chainId,
+  );
+}
+
+class _MissingData {
+  _MissingData({
+    required this.transaction,
+    this.chainId,
+  });
+
+  final Transaction transaction;
+  final int? chainId;
+}
+
+Future<_MissingData> _fillMissingDataWithoutCred({
+  required EthereumAddress sender,
+  required Transaction transaction,
+  int? chainId,
+  bool loadChainIdFromNetwork = false,
+  Web3Client? client,
+}) async {
   if (loadChainIdFromNetwork && chainId != null) {
     throw ArgumentError(
       "You can't specify loadChainIdFromNetwork and specify a custom chain id!",
     );
   }
 
-  final sender = transaction.from ?? credentials.address;
   var gasPrice = transaction.gasPrice;
 
   if (client == null &&
@@ -87,9 +119,8 @@ Future<_SigningInput> _fillMissingData({
     resolvedChainId = await client!.getNetworkId();
   }
 
-  return _SigningInput(
+  return _MissingData(
     transaction: modifiedTransaction,
-    credentials: credentials,
     chainId: resolvedChainId,
   );
 }
@@ -100,11 +131,7 @@ Uint8List prependTransactionType(int type, Uint8List transaction) {
     ..setAll(1, transaction);
 }
 
-Uint8List signTransactionRaw(
-  Transaction transaction,
-  Credentials c, {
-  int? chainId = 1,
-  }) {
+Uint8List _transactionToBytes(Transaction transaction, int? chainId) {
   if (transaction.isEIP1559 && chainId != null) {
     final encodedTx = LengthTrackingByteSink();
     encodedTx.addByte(0x02);
@@ -113,24 +140,50 @@ Uint8List signTransactionRaw(
     );
 
     encodedTx.close();
-    final signature = c.signToEcSignature(
-      encodedTx.asBytes(),
-      chainId: chainId,
-      isEIP1559: transaction.isEIP1559,
-    );
+    return encodedTx.asBytes();
+  }
 
+  final innerSignature = chainId == null
+      ? null
+      : MsgSignature(
+          BigInt.zero,
+          BigInt.zero,
+          chainId,
+        );
+
+  return uint8ListFromList(
+    rlp.encode(_encodeToRlp(transaction, innerSignature)),
+  );
+}
+
+Uint8List signTransactionRaw(
+  Transaction transaction,
+  Credentials c, {
+  int? chainId = 1,
+}) {
+  final payload = _transactionToBytes(transaction, chainId);
+
+  final signature = c.signToEcSignature(
+    payload,
+    chainId: chainId,
+    isEIP1559: transaction.isEIP1559 && chainId != null,
+  );
+
+  return _transactionAddSign(transaction, signature, chainId: chainId);
+}
+
+Uint8List _transactionAddSign(
+  Transaction transaction,
+  MsgSignature signature, {
+  int? chainId,
+}) {
+  if (transaction.isEIP1559 && chainId != null) {
     return uint8ListFromList(
       rlp.encode(
         _encodeEIP1559ToRlp(transaction, signature, BigInt.from(chainId)),
       ),
     );
   }
-  final innerSignature =
-      chainId == null ? null : MsgSignature(BigInt.zero, BigInt.zero, chainId);
-
-  final encoded =
-      uint8ListFromList(rlp.encode(_encodeToRlp(transaction, innerSignature)));
-  final signature = c.signToEcSignature(encoded, chainId: chainId);
 
   return uint8ListFromList(rlp.encode(_encodeToRlp(transaction, signature)));
 }

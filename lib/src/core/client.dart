@@ -317,21 +317,40 @@ class Web3Client {
     });
   }
 
-  Future<Transaction> prepareTransaction(
-    Credentials cred,
+  Future<List<dynamic>> prepareTransaction(
+    EthereumAddress sender,
     Transaction transaction, {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    final signingInput = await _fillMissingData(
-      credentials: cred,
+    final signingInput = await _fillMissingDataWithoutCred(
+      sender: sender,
       transaction: transaction,
       chainId: chainId,
       loadChainIdFromNetwork: fetchChainIdFromNetworkId,
       client: this,
     );
 
-    return signingInput.transaction;
+    return [signingInput.transaction, signingInput.chainId];
+  }
+
+  Future<Uint8List> transactionToBytes(
+    Transaction transaction, {
+    int? chainId = 1,
+  }) async {
+    return _transactionToBytes(transaction, chainId);
+  }
+
+  Future<Uint8List> transactionAddSign(
+    Transaction transaction,
+    MsgSignature signature,
+    int chainId,
+  ) async {
+    var signed = _transactionAddSign(transaction, signature, chainId: chainId);
+    if (transaction.isEIP1559) {
+      signed = prependTransactionType(0x02, signed);
+    }
+    return signed;
   }
 
   /// Signs the given transaction using the keys supplied in the [cred]
