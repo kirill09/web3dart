@@ -1,24 +1,7 @@
 part of 'package:web3dart/web3dart.dart';
 
-Future<SigningInput> _fillMissingData({
-  required Credentials credentials,
-  required Transaction transaction,
-  int? chainId,
-  bool loadChainIdFromNetwork = false,
-  Web3Client? client,
-}) async {
-  final sender = transaction.from ?? credentials.address;
-  return await _fillMissingDataWithoutCred(
-    sender: sender,
-    transaction: transaction,
-    chainId: chainId,
-    loadChainIdFromNetwork: loadChainIdFromNetwork,
-    client: client,
-  );
-}
-
-Future<SigningInput> _fillMissingDataWithoutCred({
-  required EthereumAddress sender,
+Future<SigningInput> fillMissingData({
+  required EthereumAddress senderAddress,
   required Transaction transaction,
   int? chainId,
   bool loadChainIdFromNetwork = false,
@@ -30,6 +13,7 @@ Future<SigningInput> _fillMissingDataWithoutCred({
     );
   }
 
+  final sender = transaction.from ?? senderAddress;
   var gasPrice = transaction.gasPrice;
 
   if (client == null &&
@@ -103,7 +87,7 @@ Uint8List prependTransactionType(int type, Uint8List transaction) {
     ..setAll(1, transaction);
 }
 
-Uint8List _transactionToBytes(Transaction transaction, int? chainId) {
+Uint8List _getBytes(Transaction transaction, int? chainId) {
   if (transaction.isEIP1559 && chainId != null) {
     final encodedTx = LengthTrackingByteSink();
     encodedTx.addByte(0x02);
@@ -133,7 +117,7 @@ Uint8List signTransactionRaw(
   Credentials c, {
   int? chainId = 1,
 }) {
-  final payload = _transactionToBytes(transaction, chainId);
+  final payload = _getBytes(transaction, chainId);
 
   final signature = c.signToEcSignature(
     payload,
@@ -141,10 +125,10 @@ Uint8List signTransactionRaw(
     isEIP1559: transaction.isEIP1559 && chainId != null,
   );
 
-  return _transactionAddSign(transaction, signature, chainId: chainId);
+  return _getSignedBytes(transaction, signature, chainId: chainId);
 }
 
-Uint8List _transactionAddSign(
+Uint8List _getSignedBytes(
   Transaction transaction,
   MsgSignature signature, {
   int? chainId,

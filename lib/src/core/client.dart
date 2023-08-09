@@ -323,8 +323,8 @@ class Web3Client {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    return await _fillMissingDataWithoutCred(
-      sender: sender,
+    return await fillMissingData(
+      senderAddress: sender,
       transaction: transaction,
       chainId: chainId,
       loadChainIdFromNetwork: fetchChainIdFromNetworkId,
@@ -332,19 +332,19 @@ class Web3Client {
     );
   }
 
-  Future<Uint8List> transactionToBytes(
+  Future<Uint8List> getBytes(
     Transaction transaction, {
     int? chainId = 1,
   }) async {
-    return _transactionToBytes(transaction, chainId);
+    return _getBytes(transaction, chainId);
   }
 
-  Future<Uint8List> transactionAddSign(
+  Future<Uint8List> getSignedBytes(
     Transaction transaction,
     MsgSignature signature,
     int chainId,
   ) async {
-    var signed = _transactionAddSign(transaction, signature, chainId: chainId);
+    var signed = _getSignedBytes(transaction, signature, chainId: chainId);
     if (transaction.isEIP1559) {
       signed = prependTransactionType(0x02, signed);
     }
@@ -406,8 +406,8 @@ class Web3Client {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    final signingInput = await _fillMissingData(
-      credentials: cred,
+    final signingInput = await fillMissingData(
+      senderAddress: cred.address,
       transaction: transaction,
       chainId: chainId,
       loadChainIdFromNetwork: fetchChainIdFromNetworkId,
