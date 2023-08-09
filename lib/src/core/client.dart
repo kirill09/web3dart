@@ -317,7 +317,7 @@ class Web3Client {
     });
   }
 
-  Future<TransactionMissingData> prepareTransaction(
+  Future<SigningInput> prepareTransaction(
     EthereumAddress sender,
     Transaction transaction, {
     int? chainId = 1,
@@ -331,9 +331,9 @@ class Web3Client {
       client: this,
     );
 
-    return TransactionMissingData(
-      signingInput.transaction,
-      signingInput.chainId,
+    return SigningInput(
+      transaction: signingInput.transaction,
+      chainId: signingInput.chainId,
     );
   }
 
@@ -421,7 +421,7 @@ class Web3Client {
 
     return signTransactionRaw(
       signingInput.transaction,
-      signingInput.credentials,
+      cred,
       chainId: signingInput.chainId,
     );
   }

@@ -1,18 +1,6 @@
 part of 'package:web3dart/web3dart.dart';
 
-class _SigningInput {
-  _SigningInput({
-    required this.transaction,
-    required this.credentials,
-    this.chainId,
-  });
-
-  final Transaction transaction;
-  final Credentials credentials;
-  final int? chainId;
-}
-
-Future<_SigningInput> _fillMissingData({
+Future<SigningInput> _fillMissingData({
   required Credentials credentials,
   required Transaction transaction,
   int? chainId,
@@ -28,9 +16,8 @@ Future<_SigningInput> _fillMissingData({
     client: client,
   );
 
-  return _SigningInput(
+  return SigningInput(
     transaction: filledData.transaction,
-    credentials: credentials,
     chainId: filledData.chainId,
   );
 }
