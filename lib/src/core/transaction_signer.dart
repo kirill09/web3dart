@@ -1,6 +1,6 @@
 part of 'package:web3dart/web3dart.dart';
 
-Future<SigningInput> fillMissingData({
+Future<SigningInput> _fillMissingData({
   required EthereumAddress senderAddress,
   required Transaction transaction,
   int? chainId,

@@ -323,7 +323,7 @@ class Web3Client {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    return await fillMissingData(
+    return await _fillMissingData(
       senderAddress: sender,
       transaction: transaction,
       chainId: chainId,
@@ -406,7 +406,7 @@ class Web3Client {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    final signingInput = await fillMissingData(
+    final signingInput = await _fillMissingData(
       senderAddress: cred.address,
       transaction: transaction,
       chainId: chainId,
