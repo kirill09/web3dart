@@ -8,31 +8,16 @@ Future<SigningInput> _fillMissingData({
   Web3Client? client,
 }) async {
   final sender = transaction.from ?? credentials.address;
-  final filledData = await _fillMissingDataWithoutCred(
+  return await _fillMissingDataWithoutCred(
     sender: sender,
     transaction: transaction,
     chainId: chainId,
     loadChainIdFromNetwork: loadChainIdFromNetwork,
     client: client,
   );
-
-  return SigningInput(
-    transaction: filledData.transaction,
-    chainId: filledData.chainId,
-  );
 }
 
-class _MissingData {
-  _MissingData({
-    required this.transaction,
-    this.chainId,
-  });
-
-  final Transaction transaction;
-  final int? chainId;
-}
-
-Future<_MissingData> _fillMissingDataWithoutCred({
+Future<SigningInput> _fillMissingDataWithoutCred({
   required EthereumAddress sender,
   required Transaction transaction,
   int? chainId,
@@ -106,7 +91,7 @@ Future<_MissingData> _fillMissingDataWithoutCred({
     resolvedChainId = await client!.getNetworkId();
   }
 
-  return _MissingData(
+  return SigningInput(
     transaction: modifiedTransaction,
     chainId: resolvedChainId,
   );
