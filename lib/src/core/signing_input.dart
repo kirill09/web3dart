@@ -1,4 +1,4 @@
-import 'package:web3dart/web3dart.dart';
+part of 'package:web3dart/web3dart.dart';
 
 class SigningInput {
   SigningInput({
