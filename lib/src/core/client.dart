@@ -317,21 +317,38 @@ class Web3Client {
     });
   }
 
-  Future<Transaction> prepareTransaction(
-    Credentials cred,
+  Future<SigningInput> prepareTransaction(
+    EthereumAddress sender,
     Transaction transaction, {
     int? chainId = 1,
     bool fetchChainIdFromNetworkId = false,
   }) async {
-    final signingInput = await _fillMissingData(
-      credentials: cred,
+    return await _fillMissingData(
+      senderAddress: sender,
       transaction: transaction,
       chainId: chainId,
       loadChainIdFromNetwork: fetchChainIdFromNetworkId,
       client: this,
     );
+  }
 
-    return signingInput.transaction;
+  Future<Uint8List> getBytes(
+    Transaction transaction, {
+    int? chainId = 1,
+  }) async {
+    return _getBytes(transaction, chainId);
+  }
+
+  Future<Uint8List> getSignedBytes(
+    Transaction transaction,
+    MsgSignature signature,
+    int chainId,
+  ) async {
+    var signed = _getSignedBytes(transaction, signature, chainId: chainId);
+    if (transaction.isEIP1559) {
+      signed = prependTransactionType(0x02, signed);
+    }
+    return signed;
   }
 
   /// Signs the given transaction using the keys supplied in the [cred]
@@ -390,7 +407,7 @@ class Web3Client {
     bool fetchChainIdFromNetworkId = false,
   }) async {
     final signingInput = await _fillMissingData(
-      credentials: cred,
+      senderAddress: cred.address,
       transaction: transaction,
       chainId: chainId,
       loadChainIdFromNetwork: fetchChainIdFromNetworkId,
@@ -399,7 +416,7 @@ class Web3Client {
 
     return signTransactionRaw(
       signingInput.transaction,
-      signingInput.credentials,
+      cred,
       chainId: signingInput.chainId,
     );
   }

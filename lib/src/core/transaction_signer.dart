@@ -1,19 +1,7 @@
 part of 'package:web3dart/web3dart.dart';
 
-class _SigningInput {
-  _SigningInput({
-    required this.transaction,
-    required this.credentials,
-    this.chainId,
-  });
-
-  final Transaction transaction;
-  final Credentials credentials;
-  final int? chainId;
-}
-
-Future<_SigningInput> _fillMissingData({
-  required Credentials credentials,
+Future<SigningInput> _fillMissingData({
+  required EthereumAddress senderAddress,
   required Transaction transaction,
   int? chainId,
   bool loadChainIdFromNetwork = false,
@@ -25,7 +13,7 @@ Future<_SigningInput> _fillMissingData({
     );
   }
 
-  final sender = transaction.from ?? credentials.address;
+  final sender = transaction.from ?? senderAddress;
   var gasPrice = transaction.gasPrice;
 
   if (client == null &&
@@ -87,9 +75,8 @@ Future<_SigningInput> _fillMissingData({
     resolvedChainId = await client!.getNetworkId();
   }
 
-  return _SigningInput(
+  return SigningInput(
     transaction: modifiedTransaction,
-    credentials: credentials,
     chainId: resolvedChainId,
   );
 }
@@ -100,11 +87,7 @@ Uint8List prependTransactionType(int type, Uint8List transaction) {
     ..setAll(1, transaction);
 }
 
-Uint8List signTransactionRaw(
-  Transaction transaction,
-  Credentials c, {
-  int? chainId = 1,
-  }) {
+Uint8List _getBytes(Transaction transaction, int? chainId) {
   if (transaction.isEIP1559 && chainId != null) {
     final encodedTx = LengthTrackingByteSink();
     encodedTx.addByte(0x02);
@@ -113,24 +96,50 @@ Uint8List signTransactionRaw(
     );
 
     encodedTx.close();
-    final signature = c.signToEcSignature(
-      encodedTx.asBytes(),
-      chainId: chainId,
-      isEIP1559: transaction.isEIP1559,
-    );
+    return encodedTx.asBytes();
+  }
 
+  final innerSignature = chainId == null
+      ? null
+      : MsgSignature(
+          BigInt.zero,
+          BigInt.zero,
+          chainId,
+        );
+
+  return uint8ListFromList(
+    rlp.encode(_encodeToRlp(transaction, innerSignature)),
+  );
+}
+
+Uint8List signTransactionRaw(
+  Transaction transaction,
+  Credentials c, {
+  int? chainId = 1,
+}) {
+  final payload = _getBytes(transaction, chainId);
+
+  final signature = c.signToEcSignature(
+    payload,
+    chainId: chainId,
+    isEIP1559: transaction.isEIP1559 && chainId != null,
+  );
+
+  return _getSignedBytes(transaction, signature, chainId: chainId);
+}
+
+Uint8List _getSignedBytes(
+  Transaction transaction,
+  MsgSignature signature, {
+  int? chainId,
+}) {
+  if (transaction.isEIP1559 && chainId != null) {
     return uint8ListFromList(
       rlp.encode(
         _encodeEIP1559ToRlp(transaction, signature, BigInt.from(chainId)),
       ),
     );
   }
-  final innerSignature =
-      chainId == null ? null : MsgSignature(BigInt.zero, BigInt.zero, chainId);
-
-  final encoded =
-      uint8ListFromList(rlp.encode(_encodeToRlp(transaction, innerSignature)));
-  final signature = c.signToEcSignature(encoded, chainId: chainId);
 
   return uint8ListFromList(rlp.encode(_encodeToRlp(transaction, signature)));
 }

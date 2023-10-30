@@ -36,3 +36,4 @@ part 'src/core/transaction.dart';
 part 'src/core/transaction_information.dart';
 part 'src/core/transaction_signer.dart';
 part 'src/utils/length_tracking_byte_sink.dart';
+part 'src/core/signing_input.dart';
